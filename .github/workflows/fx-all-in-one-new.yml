@@ -263,8 +263,8 @@ jobs:
           export PATH="${{ env.CLANG_PATH }}:$PATH"
           export ARCH=arm64
           export SUBARCH=ARM64
-          export KBUILD_BUILD_USER="senx"
-          export KBUILD_BUILD_HOST="ubuntu"
+          export KBUILD_BUILD_USER="Kenskuyy"
+          export KBUILD_BUILD_HOST="Github"
           export KBUILD_BUILD_TIMESTAMP="$(TZ=UTC-7 date)"
           cd kernel_tree
           make O=out vendor/munch_defconfig
