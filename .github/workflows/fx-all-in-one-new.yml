@@ -513,7 +513,7 @@ jobs:
                       'parse_mode': 'HTML'
                   }
                   if thread_id:
-                      data['message_thread_id'] = thread_id  # untuk kirim ke topik
+                      data['message_thread_id'] = thread_id  # kirim ke topik
                   response = requests.post(url, data=data, files=files)
               return response.json()
 
@@ -526,17 +526,16 @@ jobs:
                   'parse_mode': 'HTML'
               }
               if thread_id:
-                  data['message_thread_id'] = thread_id
+                  data['message_thread_id'] = thread_id  # kirim ke topik
               return requests.post(url, data=data).json()
 
           # Ambil variabel dari environment
           bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
           chat_id = os.environ.get('TELEGRAM_CHAT_ID')
-          thread_id = os.environ.get('TELEGRAM_TOPIC_ID')  # 🔸 ID topik Telegram (opsional)
+          thread_id = os.environ.get('TELEGRAM_TOPIC_ID')  # 🔸 ID topik Telegram
           clang = os.environ.get('CLANG_TOOLCHAIN', 'aosp')
           lto = 'THIN' if os.environ.get('LTO_CONFIG') == 'true' else 'FULL'
           oplus = 'YES' if os.environ.get('OPLUS_FEATURES') == 'yes' else 'NO'
-          build_start_time = os.environ.get('BUILD_START_TIME')
           version = os.environ.get('VERSION', '2.x')
           manila_tz = timezone(timedelta(hours=8))
           build_date = datetime.now(manila_tz).strftime('%Y-%m-%d %H:%M:%S')
@@ -547,8 +546,12 @@ jobs:
               print("❌ Missing Telegram credentials.")
               exit(1)
 
+          # Jika build gagal (tidak ada ZIP)
           if not zip_files:
-              send_telegram_message(bot_token, chat_id, thread_id, "❌ <b>Build Failed!</b>")
+              if thread_id:
+                  send_telegram_message(bot_token, chat_id, thread_id, "❌ <b>Build Failed!</b>")
+              else:
+                  send_telegram_message(bot_token, chat_id, None, "❌ <b>Build Failed!</b>")
               exit(1)
 
           # Kirim setiap ZIP hasil build
@@ -569,17 +572,17 @@ jobs:
                   build_type = "Unknown"
               
               caption = f"""<pre>
-                  <b> FusionX Build Complete! </b>
-                  ==============================
-                  <b> Date:</b>        {build_date}
-                  <b> Branch:</b>      {branch_info}
-                  <b> Version:</b>     {version}
-                  <b> LTO:</b>         {lto}
-                  <b> Clang:</b>       {clang}
-                  <b> OPLUS:</b>       {oplus}
-                  <b> Build Type:</b>  {build_type}
-                  ==============================
-                  </pre>"""
+                <b> FusionX Build Complete! </b>
+                ==============================
+                <b> Date:</b>        {build_date}
+                <b> Branch:</b>      {branch_info}
+                <b> Version:</b>     {version}
+                <b> LTO:</b>         {lto}
+                <b> Clang:</b>       {clang}
+                <b> OPLUS:</b>       {oplus}
+                <b> Build Type:</b>  {build_type}
+                ==============================
+                </pre>"""
 
               try:
                   result = send_telegram_file(bot_token, chat_id, thread_id, caption, zip_file)
@@ -594,5 +597,3 @@ jobs:
 
           python3 send_telegram.py
 
-
-          python3 send_telegram.py
