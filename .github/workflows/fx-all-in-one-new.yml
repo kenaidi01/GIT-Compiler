@@ -5,7 +5,7 @@ on:
     inputs:
       KERNEL_TREE_1:
         description: 'Kernel Tree'
-        default: 'https://github.com/kenaidi01/fusionX_sm8250'
+        default: 'https://github.com/Kenskuyy-Prjkt/fusionX_sm8250'
         required: true
       KERNEL_TREE_BRANCH_1:
         description: 'Kernel Tree Branch (SUSFS)'
@@ -486,6 +486,7 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_TOPIC_ID: ${{ secrets.TELEGRAM_TOPIC_ID }} # 🔸 Tambahkan di Secrets
           CLANG_TOOLCHAIN: ${{ github.event.inputs.CLANG_TOOLCHAIN }}
           LTO_CONFIG: ${{ github.event.inputs.USE_LTO_THIN }}
           OPLUS_FEATURES: ${{ github.event.inputs.OPLUS_FEATURES }}
@@ -501,7 +502,8 @@ jobs:
           import glob
           from datetime import datetime, timezone, timedelta
 
-          def send_telegram_file(bot_token, chat_id, message, file_path):
+          # Kirim file ke Telegram
+          def send_telegram_file(bot_token, chat_id, thread_id, message, file_path):
               url = f"https://api.telegram.org/bot{bot_token}/sendDocument"
               with open(file_path, 'rb') as f:
                   files = {'document': f}
@@ -510,19 +512,27 @@ jobs:
                       'caption': message,
                       'parse_mode': 'HTML'
                   }
+                  if thread_id:
+                      data['message_thread_id'] = thread_id  # untuk kirim ke topik
                   response = requests.post(url, data=data, files=files)
               return response.json()
 
-          def send_telegram_message(bot_token, chat_id, message):
+          # Kirim pesan teks ke Telegram
+          def send_telegram_message(bot_token, chat_id, thread_id, message):
               url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
               data = {
                   'chat_id': chat_id,
                   'text': message,
                   'parse_mode': 'HTML'
               }
+              if thread_id:
+                  data['message_thread_id'] = thread_id
               return requests.post(url, data=data).json()
+
+          # Ambil variabel dari environment
           bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
           chat_id = os.environ.get('TELEGRAM_CHAT_ID')
+          thread_id = os.environ.get('TELEGRAM_TOPIC_ID')  # 🔸 ID topik Telegram (opsional)
           clang = os.environ.get('CLANG_TOOLCHAIN', 'aosp')
           lto = 'THIN' if os.environ.get('LTO_CONFIG') == 'true' else 'FULL'
           oplus = 'YES' if os.environ.get('OPLUS_FEATURES') == 'yes' else 'NO'
@@ -531,15 +541,17 @@ jobs:
           manila_tz = timezone(timedelta(hours=8))
           build_date = datetime.now(manila_tz).strftime('%Y-%m-%d %H:%M:%S')
           zip_files = glob.glob('artifacts/**/*.zip', recursive=True)
-          
+
+          # Validasi kredensial dan hasil build
           if not bot_token or not chat_id:
-              print("Missing Telegram credentials")
-              exit(1)
-              
-          if not zip_files:
-              send_telegram_message(bot_token, chat_id, "❌ <b>Build Failed!</b>")
+              print("❌ Missing Telegram credentials.")
               exit(1)
 
+          if not zip_files:
+              send_telegram_message(bot_token, chat_id, thread_id, "❌ <b>Build Failed!</b>")
+              exit(1)
+
+          # Kirim setiap ZIP hasil build
           for zip_file in zip_files:
               file_name = os.path.basename(zip_file)
               
@@ -557,20 +569,20 @@ jobs:
                   build_type = "Unknown"
               
               caption = f"""<pre>
-            <b> FusionX Build Complete! </b>
-            ==============================
-            <b> Date:</b>        {build_date}
-            <b> Branch:</b>      {branch_info}
-            <b> Version:</b>     {version}
-            <b> Lto:</b>         {lto}
-            <b> Clang:</b>       {clang}
-            <b> OPLUS:</b>       {oplus}
-            <b> Build Type:</b>  {build_type}
-            ==============================
-            </pre>"""
-              
+                  <b> FusionX Build Complete! </b>
+                  ==============================
+                  <b> Date:</b>        {build_date}
+                  <b> Branch:</b>      {branch_info}
+                  <b> Version:</b>     {version}
+                  <b> LTO:</b>         {lto}
+                  <b> Clang:</b>       {clang}
+                  <b> OPLUS:</b>       {oplus}
+                  <b> Build Type:</b>  {build_type}
+                  ==============================
+                  </pre>"""
+
               try:
-                  result = send_telegram_file(bot_token, chat_id, caption, zip_file)
+                  result = send_telegram_file(bot_token, chat_id, thread_id, caption, zip_file)
                   if result.get('ok'):
                       print(f"✅ Successfully sent {file_name}")
                   else:
@@ -579,5 +591,8 @@ jobs:
                   print(f"❌ Error sending {file_name}: {str(e)}")
 
           EOF
+
+          python3 send_telegram.py
+
 
           python3 send_telegram.py
