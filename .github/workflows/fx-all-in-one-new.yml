@@ -33,7 +33,7 @@ on:
           - wip-noksu
       VERSION:
         description: 'Zip Version'
-        default: '2.0'
+        default: '2.0.1'
         required: false
       ANYKERNEL_URL:
         description: 'AnyKernel Url (leave blank if you dont want AnyKernel)'
@@ -41,11 +41,11 @@ on:
         required: false
       CUSTOM_SED:
         description: 'Custom Kernel Version'
-        default: '-FusionX-2.0'
+        default: '-FusionX-2.0.1'
         required: false
       CLANG_TOOLCHAIN:
         description: 'Clang toolchain selection'
-        default: 'aosp clang 20'
+        default: 'aosp clang 21'
         required: true
         type: choice
         options:
@@ -192,8 +192,8 @@ jobs:
       - name: Kernel Version
         run: |
           cd kernel_tree
-          if [[ "${{ github.event.inputs.CUSTOM_SED }}" != "-FusionX-2.0" ]]; then
-            sed -i -e 's/CONFIG_LOCALVERSION="-FusionX-2.0"/CONFIG_LOCALVERSION="${{ github.event.inputs.CUSTOM_SED }}"/' arch/arm64/configs/vendor/munch_defconfig
+          if [[ "${{ github.event.inputs.CUSTOM_SED }}" != "-FusionX-2.0.1" ]]; then
+            sed -i -e 's/CONFIG_LOCALVERSION="-FusionX-2.0.1"/CONFIG_LOCALVERSION="${{ github.event.inputs.CUSTOM_SED }}"/' arch/arm64/configs/vendor/munch_defconfig
           fi
 
       - name: Change LTO Configuration to THIN
